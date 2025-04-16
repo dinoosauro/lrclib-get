@@ -1,0 +1,178 @@
+:root {
+  --font: "Work Sans", sans-serif;
+  font-family: var(--font);
+  --background: #151515;
+  --text: #fafafa;
+  --card: #313131;
+  --tableheader: #515151;
+  --green: #367639;
+  --red: #783a3a;
+  --accent: #358068;
+}
+
+input[type=number] {
+  width: 60px;
+}
+
+button,
+input:not([type=checkbox]),
+select {
+  background-color: var(--accent);
+  color: var(--text);
+  padding: 10px;
+  border-radius: 8px;
+  border: 1px solid var(--text);
+  transition: filter 0.2s ease-in-out;
+  font-family: var(--font);
+}
+
+button {
+  width: 100%;
+  width: -webkit-fill-available;
+  width: -moz-available;
+}
+
+button:hover {
+  filter: brightness(125%);
+  cursor: pointer;
+}
+
+button:active {
+  filter: brightness(140%);
+}
+
+
+body {
+  padding: 10px;
+  background-color: var(--background);
+  color: var(--text);
+}
+
+.card {
+  padding: 10px;
+  background-color: var(--card);
+  border-radius: 8px;
+}
+
+table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 4px;
+}
+
+table tr>* {
+  padding: 10px;
+  border-radius: 8px;
+}
+
+table tr {
+  background-color: var(--tableheader);
+  border-radius: 8px;
+}
+
+td {
+  text-align: center;
+}
+
+input[type=checkbox] {
+  width: 60px;
+  min-width: 60px;
+  border-radius: 12px;
+  background-color: var(--card);
+  appearance: none;
+  border: 1px solid var(--text);
+  height: 20px;
+  min-height: 20px;
+  position: relative;
+  transition: background-color 0.2s ease-in-out;
+}
+
+input[type=checkbox]::before {
+  content: "";
+  width: 14px;
+  height: 14px;
+  top: 2px;
+  position: absolute;
+  left: 2px;
+  background-color: var(--text);
+  border-radius: 50%;
+  transition: left 0.2s ease-in-out;
+}
+
+input[type=checkbox]:checked::before {
+  left: 42px;
+}
+
+input[type=checkbox]:checked {
+  background-color: var(--accent);
+}
+
+.flex {
+  display: flex;
+}
+
+.hcenter {
+  align-items: center;
+}
+
+.margin {
+  margin-bottom: 10px;
+}
+
+.marginInner>* {
+  margin-right: 10px;
+}
+
+.wrap {
+  flex-wrap: wrap;
+}
+
+.wrap>* {
+  flex: 1 0 400px;
+}
+
+.gap {
+  gap: 10px;
+}
+
+.dialogContainer {
+  z-index: 2;
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  backdrop-filter: blur(8px) brightness(40%);
+  -webkit-backdrop-filter: blur(8px) brightness(40%);
+  transition: opacity 0.2s ease-in-out;
+  opacity: 0;
+}
+
+.dialogContainer>div {
+  background-color: var(--card);
+  padding: 10px;
+  border-radius: 8px;
+  width: 75vw;
+  top: 5vh;
+  height: 70vh;
+  left: calc(12.5vw - 10px);
+  position: fixed;
+  overflow: auto;
+}
+
+a {
+  color: var(--text);
+}
+
+h3 {
+  text-align: center;
+}
+
+a {
+  cursor: pointer;
+}
+
+.anchorBlock a {
+  display: block;
+  margin-bottom: 10px;
+}
