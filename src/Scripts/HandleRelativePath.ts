@@ -1,5 +1,5 @@
 /**
- * Get the relative of the file. If not available, the file name is used.
+ * Get the relative of the file, without its extension. If not available, the file name is used.
  * @param file the File object
  * @returns the path of the file
  */

@@ -19,9 +19,6 @@ export default function App() {
   const [dialog, showDialog] = useState<DialogEnum>(DialogEnum.NONE);
   const [mainLinks, updateMainLinks] = useState<HTMLAnchorElement[]>([]);
   let isUpdatedFromLocalStorage = useRef<boolean>(false);
-  function getExtensions() {
-    return prompt("Convert only the files that ends with:\nYou can divide the extensions with a comma.") || undefined;
-  }
   async function pickFiles(directory = false) {
     if (directory && options.current.useFS && window.showDirectoryPicker) { // Get write access to a directory using the File System API
       try {
@@ -42,7 +39,7 @@ export default function App() {
           }
         }
         await getFiles(directory);
-        await FileLogic({ files: arr, updateState, options: options.current, handle: directory, anchorUpdate: updateMainLinks, extensions: getExtensions() });
+        await FileLogic({ files: arr, updateState, options: options.current, handle: directory, anchorUpdate: updateMainLinks, extensions: options.current.allowedExtensions });
         return;
       } catch (ex) {
         console.warn(ex);
@@ -55,7 +52,7 @@ export default function App() {
     input.onchange = async () => {
       if (input.files) {
         for (let i = 0; i < input.files.length; i++) input.files[i]._path = input.files[i].webkitRelativePath; // The _path property is used so that the relative path can be added also when using the File System API
-        await FileLogic({ files: input.files, updateState, options: options.current, anchorUpdate: updateMainLinks, extensions: directory ? getExtensions() : undefined });
+        await FileLogic({ files: input.files, updateState, options: options.current, anchorUpdate: updateMainLinks, extensions: directory ? options.current.allowedExtensions : undefined });
       }
     };
     input.click();
@@ -74,7 +71,10 @@ export default function App() {
     keepLrc: true,
     useFS: false,
     minWait: 100,
-    maxWait: 400
+    maxWait: 400,
+    allowedExtensions: "",
+    checkLrc: false,
+    checkOnlyLrcFileName: false
   });
   if (!isUpdatedFromLocalStorage.current) {
     isUpdatedFromLocalStorage.current = true;
@@ -135,9 +135,21 @@ export default function App() {
           </label>
         </div>
         <div className="card" style={{ backgroundColor: "var(--tableheader)" }}>
+          <h3>Folder-specific options:</h3>
+          <label className="flex hcenter margin marginInner">
+            <span>Fetch only the lyrics of the files that end with (comma-separated list):</span><input type="text" defaultValue={options.current.allowedExtensions} onChange={(e) => updateRef("allowedExtensions", e.target.value)}></input>
+          </label>
+          <label className="flex hcenter margin marginInner">
+            <input type="checkbox" onChange={(e) => updateRef("checkLrc", e.target.checked)} defaultChecked={options.current.checkLrc}></input><span>Don't fetch lyrics if a .LRC file with the same name is available</span><select defaultValue={options.current.checkOnlyLrcFileName ? "everywhere" : "same"} onChange={(e) => updateRef("checkOnlyLrcFileName", e.target.value === "everywhere")}>
+              <option value={"same"}>in the same folder</option>
+              <option value={"everywhere"}>in any subfolder of the selected one</option>
+            </select>
+          </label>
+        </div>
+        <div className="card" style={{ backgroundColor: "var(--tableheader)" }}>
           <h3>Advanced:</h3>
           <label className="flex hcenter margin marginInner">
-            <input type="checkbox" defaultChecked={options.current.useFileName} onChange={(e) => updateRef("useFileName", e.target.checked)}></input><span>Use the file name</span> <select onChange={(e) => {
+            <input type="checkbox" defaultChecked={options.current.useFileName} onChange={(e) => updateRef("useFileName", e.target.checked)}></input><span>Use the file name</span> <select defaultValue={options.current.forceFileName ? "always" : "metadata"} onChange={(e) => {
               updateRef("forceFileName", e.target.value === "always");
             }}>
               <option value={"metadata"}>if metadata can't be fetched</option>

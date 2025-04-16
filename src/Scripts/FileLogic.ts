@@ -43,6 +43,19 @@ export default async function FileLogic({ files, updateState, options, handle, e
                 }
             }
         }
+        if (options.checkLrc && shouldFetch) {
+            /**
+             * All the .lrc files that are in the selected subfolder
+             */
+            const availableLyrics = Array.from(files).filter(item => item.name.endsWith(".lrc"));
+            if (options.checkOnlyLrcFileName) { // Check if a LRC file with the same name as the track exists, even if it's in another folder.
+                const fileName = item.name.substring(0, item.name.lastIndexOf("."));
+                shouldFetch = availableLyrics.findIndex(file => file.name.substring(0, file.name.lastIndexOf(".")) === fileName) === -1;
+            } else { // Check that a LRC file with the same name as the track exists, and it's located in the same folder.
+                let filePath = HandleRelativePath(item);
+                shouldFetch = availableLyrics.findIndex(file => HandleRelativePath(file) === filePath) === -1;
+            }
+        }
         if (!shouldFetch) continue;
         const result = await new Promise<TagResult>((res) => {
             if (options.forceFileName) res({ success: false, error: "Not required." });
@@ -156,9 +169,9 @@ export default async function FileLogic({ files, updateState, options, handle, e
             result: `Error: ${type}`,
         }])
     };
-    errorContainer !== "" && await WriteOperation(handle ?? zip, `LRCLib-Get-${files[0]._path.substring(0, files[0]._path.indexOf("/"))}-Errors-${Date.now()}.txt`, errorContainer);
+    errorContainer !== "" && await WriteOperation(handle ?? zip, `LRCLib-Get-${files[0]._path?.substring(0, files[0]._path?.indexOf("/"))}-Errors-${Date.now()}.txt`, errorContainer);
     if (!handle) {
-        const download = `LyricsDownload-${files[0]._path.substring(0, files[0]._path.indexOf("/"))}-${Date.now()}.zip`;
+        const download = `LyricsDownload-${files[0]._path?.substring(0, files[0]._path?.indexOf("/"))}-${Date.now()}.zip`;
         const a = Object.assign(document.createElement("a"), {
             href: URL.createObjectURL(await zip.generateAsync({ type: "blob" })),
             download,

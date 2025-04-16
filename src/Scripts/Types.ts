@@ -30,7 +30,10 @@ export interface Options {
     keepLrc: boolean,
     useFS: boolean,
     minWait: number,
-    maxWait: number
+    maxWait: number,
+    allowedExtensions: string
+    checkLrc: boolean
+    checkOnlyLrcFileName: boolean
 }
 
 export enum DialogEnum {

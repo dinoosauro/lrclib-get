@@ -8,13 +8,17 @@ interface Props {
     /**
      * The function used to close the Dialog
      */
-    close: () => void
+    close: () => void,
+    /**
+     * Custom text to show instead of the "Close" button
+     */
+    customCloseText?: string
 }
 /**
  * Show a dialog
  * @returns the dialog ReactNode
  */
-export default function Dialog({ children, close }: Props) {
+export default function Dialog({ children, close, customCloseText }: Props) {
     useEffect(() => {
         setTimeout(() => {
             if (ref.current) ref.current.style.opacity = "1";
@@ -28,7 +32,7 @@ export default function Dialog({ children, close }: Props) {
                 <button onClick={() => {
                     if (ref.current) ref.current.style.opacity = "0";
                     setTimeout(close, 210);
-                }}>Close</button>
+                }}>{customCloseText ?? "Close"}</button>
             </div>
         </div>
     </>

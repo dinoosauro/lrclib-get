@@ -128,7 +128,7 @@ input[type=checkbox]:checked {
 }
 
 .wrap>* {
-  flex: 1 0 400px;
+  flex: 1 0 500px;
 }
 
 .gap {
