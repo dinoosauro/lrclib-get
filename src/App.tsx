@@ -34,12 +34,12 @@ export default function App() {
             if (entry.kind === "file") {
               const file = await entry.getFile();
               file._path = `${path}/${entry.name}`; // The _path property is used so that the relative path can be added also when using the File System API
-              arr.push(file);
+              file._path.endsWith(options.current.allowedExtensions) && arr.push(file);
             } else await getFiles(await handle.getDirectoryHandle(entry.name), `${path}/${entry.name}`);
           }
         }
         await getFiles(directory);
-        await FileLogic({ files: arr, updateState, options: options.current, handle: directory, anchorUpdate: updateMainLinks, extensions: options.current.allowedExtensions });
+        await FileLogic({ files: arr, updateState, options: options.current, handle: directory, anchorUpdate: updateMainLinks, progress });
         return;
       } catch (ex) {
         console.warn(ex);
@@ -52,7 +52,7 @@ export default function App() {
     input.onchange = async () => {
       if (input.files) {
         for (let i = 0; i < input.files.length; i++) input.files[i]._path = input.files[i].webkitRelativePath; // The _path property is used so that the relative path can be added also when using the File System API
-        await FileLogic({ files: input.files, updateState, options: options.current, anchorUpdate: updateMainLinks, extensions: directory ? options.current.allowedExtensions : undefined });
+        await FileLogic({ files: directory ? Array.from(input.files).filter(item => item._path.endsWith(options.current.allowedExtensions)) : input.files, updateState, options: options.current, anchorUpdate: updateMainLinks, progress });
       }
     };
     input.click();
@@ -76,6 +76,7 @@ export default function App() {
     checkLrc: false,
     checkOnlyLrcFileName: false
   });
+  const progress = useRef<HTMLProgressElement>(null);
   if (!isUpdatedFromLocalStorage.current) {
     isUpdatedFromLocalStorage.current = true;
     const prevOptions = JSON.parse(localStorage.getItem("LRCLibGet-Options") ?? "{}") as CompletedInfo;
@@ -174,6 +175,7 @@ export default function App() {
     <div className="card">
       <h2>Converted files:</h2>
       <p>A zip file with all the files will be downloaded at the end. You can click on a track name to download the zip file with only that track data.</p>
+      <progress ref={progress} value={0} max={0}></progress><br></br><br></br>
       <table>
         <thead>
           <tr>
@@ -202,7 +204,7 @@ export default function App() {
     </div><br></br>
     <div className="card anchorBlock">
       <h2>Redownload zip files</h2>
-      <p>Some browsers might block the download of files. If this happens for a single track, click again on the link and it should work. If this happens for the entire conversion, you can find here below the links</p>
+      <p>Some browsers might block the download of files. If this happens for a single track, click again on the link and it should work. If this happens for the entire conversion, you can find here the links:</p>
       {mainLinks.map(item => <VanillaHTMLConverter key={item.href} child={item}></VanillaHTMLConverter>)}
     </div><br></br>
     <p>
@@ -223,7 +225,7 @@ Copyright (c) 2008 Jacob Seidelin, http://blog.nihilogic.dk/
 
 Copyright (c) 2010 Joshua Kifer`, type: "bsd", link: "https://github.com/aadsm/jsmediatags"
         }, {
-          name: `JSZip`, type: "mit", link: `https://github.com/Stuk/jszip`, author: `2009-2016 Stuart Knightley, David Duponchel, Franz Buchinger, António Afonso`
+          name: `zip.js`, type: "bsd", link: `https://github.com/gildas-lormeau/zip.js/`, author: `2023, Gildas Lormeau`
         }, {
           name: "React", type: "mit", link: "https://github.com/facebook/react", author: "Meta Platforms, Inc. and affiliates."
         },

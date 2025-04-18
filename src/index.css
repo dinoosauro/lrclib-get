@@ -16,6 +16,7 @@ input[type=number] {
 
 button,
 input:not([type=checkbox]),
+progress,
 select {
   background-color: var(--accent);
   color: var(--text);
@@ -26,10 +27,46 @@ select {
   font-family: var(--font);
 }
 
-button {
+button,
+progress {
   width: 100%;
   width: -webkit-fill-available;
   width: -moz-available;
+}
+
+progress {
+  background-color: var(--tableheader);
+  height: 20px;
+  padding: 0px;
+  border-radius: 8px;
+}
+
+progress[value='1']::-webkit-progress-bar,
+progress[value='1']::-webkit-progress-value,
+progress[value='1']::-moz-progress-bar {
+  border-top-right-radius: 0px !important;
+  border-bottom-right-radius: 0px !important;
+}
+
+progress::-webkit-progress-bar {
+  border-radius: 12px;
+}
+
+progress::-webkit-progress-value {
+  border-radius: 8px;
+  z-index: -1;
+}
+
+progress::-moz-progress-bar {
+  border-radius: 8px;
+}
+
+progress::-moz-progress-bar {
+  background: var(--accent);
+}
+
+progress::-webkit-progress-value {
+  background: var(--accent);
 }
 
 button:hover {
@@ -52,6 +89,9 @@ body {
   padding: 10px;
   background-color: var(--card);
   border-radius: 8px;
+  max-width: 100%;
+  max-width: -webkit-fill-available;
+  max-width: -moz-available;
 }
 
 table {

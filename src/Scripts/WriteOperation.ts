@@ -1,12 +1,12 @@
-import JSZip from "jszip";
+import { TextReader, ZipWriter } from "@zip.js/zip.js";
 
 /**
  * Write a file using the provided handle or zip file
- * @param handle the FileSystemDirectoryHandle or JSZip file used for this operation
+ * @param handle the FileSystemDirectoryHandle or ZipWriter object used for this operation
  * @param path the path where the file should be written
  * @param content the content of the file
  */
-export default async function WriteOperation(handle: JSZip | FileSystemDirectoryHandle, path: string, content: any) {
+export default async function WriteOperation(handle: ZipWriter<Blob> | FileSystemDirectoryHandle, path: string, content: any) {
     if (!content) return;
     if (handle instanceof FileSystemDirectoryHandle) {
         const split = path.split("/");
@@ -18,5 +18,5 @@ export default async function WriteOperation(handle: JSZip | FileSystemDirectory
         await writable.close();
         return;
     }
-    handle.file(path, content);
+    await handle.add(path, new TextReader(content))
 }

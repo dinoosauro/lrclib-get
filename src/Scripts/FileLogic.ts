@@ -1,7 +1,7 @@
-import JSZip from "jszip"
 import { CompletedInfo, DurationResult, Options, TagResult } from "./Types"
 import HandleRelativePath from "./HandleRelativePath";
 import WriteOperation from "./WriteOperation";
+import { BlobWriter, TextReader, ZipWriter } from "@zip.js/zip.js";
 
 interface Props {
     /**
@@ -20,43 +20,31 @@ interface Props {
      * Optional parameter. If provided, the website will use the File System API to directly write the files on the device.
      */
     handle?: FileSystemDirectoryHandle,
-    /**
-     * Optional parameter. A comma-separated list of values. If the file ends with one of these values, lyrics will be fetched,.
-     */
-    extensions?: string,
-    anchorUpdate?: React.Dispatch<React.SetStateAction<HTMLAnchorElement[]>>
+    anchorUpdate?: React.Dispatch<React.SetStateAction<HTMLAnchorElement[]>>,
+    progress?: React.RefObject<HTMLProgressElement | null>
 }
-export default async function FileLogic({ files, updateState, options, handle, extensions, anchorUpdate }: Props) {
+export default async function FileLogic({ files, updateState, options, handle, anchorUpdate, progress }: Props) {
     /**
      * The string that contains all the errors that'll be written in the output file.
      */
     let errorContainer = "";
-    const zip = new JSZip();
-    const [zipResponse, zipPlain, zipSynced] = [zip.folder("json"), zip.folder("plain"), zip.folder("synced")];
+    const zipFile = new ZipWriter(new BlobWriter());
+    if (progress?.current) progress.current.max += (files.length - (progress.current.value === 0 && progress.current.max === 1 ? 1 : 0));
     for (const item of files) {
-        let shouldFetch = !extensions;
-        if (extensions) { // The user has provided some extension. Check if the file ends with one of these to continue
-            for (const singleExtension of extensions) {
-                if ((item._path || item.name).endsWith(singleExtension)) {
-                    shouldFetch = true;
-                    break;
-                }
-            }
-        }
-        if (options.checkLrc && shouldFetch) {
+        if (progress?.current) progress.current.value = (progress.current.value ?? 0) + 1;
+        if (options.checkLrc) {
             /**
              * All the .lrc files that are in the selected subfolder
              */
             const availableLyrics = Array.from(files).filter(item => item.name.endsWith(".lrc"));
             if (options.checkOnlyLrcFileName) { // Check if a LRC file with the same name as the track exists, even if it's in another folder.
                 const fileName = item.name.substring(0, item.name.lastIndexOf("."));
-                shouldFetch = availableLyrics.findIndex(file => file.name.substring(0, file.name.lastIndexOf(".")) === fileName) === -1;
+                if (availableLyrics.findIndex(file => file.name.substring(0, file.name.lastIndexOf(".")) === fileName) !== -1) continue;
             } else { // Check that a LRC file with the same name as the track exists, and it's located in the same folder.
                 let filePath = HandleRelativePath(item);
-                shouldFetch = availableLyrics.findIndex(file => HandleRelativePath(file) === filePath) === -1;
+                if (availableLyrics.findIndex(file => HandleRelativePath(file) === filePath) !== -1) continue;;
             }
         }
-        if (!shouldFetch) continue;
         const result = await new Promise<TagResult>((res) => {
             if (options.forceFileName) res({ success: false, error: "Not required." });
             // @ts-ignore
@@ -109,6 +97,7 @@ export default async function FileLogic({ files, updateState, options, handle, e
                 const res = await req.json();
                 if (res.length === 0) {
                     errorUpdate("DATABASE ITEM NOT FOUND", item, infoConversion);
+                    await nextTimeout();
                     continue;
                 }
                 const path = HandleRelativePath(item);
@@ -125,21 +114,22 @@ export default async function FileLogic({ files, updateState, options, handle, e
                 if (!seconds.success || !options.enforceSeconds) selectedItem = 0;
                 if ((!res[selectedItem].plainLyrics && !res[selectedItem].syncedLyrics) || selectedItem === -1) {
                     errorUpdate("DATABASE ITEM NOT FOUND", item, infoConversion);
-                    return;
+                    await nextTimeout();
+                    continue;
                 }
-                options.keepJson && zipResponse && await WriteOperation(handle ?? zipResponse, `${path}.json`, JSON.stringify(res));
-                options.keepTxt && zipPlain && await WriteOperation(handle ?? zipPlain, `${path}.txt`, res[selectedItem].plainLyrics);
-                options.keepLrc && zipSynced && await WriteOperation(handle ?? zipSynced, `${path}.lrc`, res[selectedItem].syncedLyrics);
+                options.keepJson && await WriteOperation(handle ?? zipFile, `json/${path}.json`, JSON.stringify(res));
+                options.keepTxt && await WriteOperation(handle ?? zipFile, `plain/${path}.txt`, res[selectedItem].plainLyrics);
+                options.keepLrc && await WriteOperation(handle ?? zipFile, `synced/${path}.lrc`, res[selectedItem].syncedLyrics);
 
                 updateState && updateState(prevState => [...prevState, {
                     ...infoConversion,
                     result: "Successful",
                     download: async (item: HTMLAnchorElement) => { // This function is called if there's no Blob URL associated with this.
-                        const zip = new JSZip();
-                        zip.file(`${path}.json`, JSON.stringify(res));
-                        zip.file(`${path}.txt`, res[selectedItem].plainLyrics);
-                        zip.file(`${path}.lrc`, res[selectedItem].syncedLyrics);
-                        item.href = URL.createObjectURL(await zip.generateAsync({ type: "blob" }));
+                        const zip = new ZipWriter(new BlobWriter());
+                        await zip.add(`${path}.json`, new TextReader(JSON.stringify(res)));
+                        await zip.add(`${path}.txt`, new TextReader(res[selectedItem].plainLyrics));
+                        await zip.add(`${path}.lrc`, new TextReader(res[selectedItem].syncedLyrics));
+                        item.href = URL.createObjectURL(await zip.close());
                         item.download = `${path.substring(path.lastIndexOf("/") + 1)}.zip`;
                         item.click();
                     }
@@ -148,9 +138,7 @@ export default async function FileLogic({ files, updateState, options, handle, e
             } else if (req.status === 404) {
                 errorUpdate("DATABASE ITEM NOT FOUND", item, infoConversion);
             } else errorUpdate(`SERVER ERROR: ${req.status}`, item, infoConversion);
-            await new Promise(res => {
-                setTimeout(res, Math.floor(Math.random() * (options.maxWait - options.minWait) + options.minWait))
-            })
+            await nextTimeout();
         } else errorUpdate(`MISSING FILE INFORMATION`, item, infoConversion);
     }
     /**
@@ -169,16 +157,21 @@ export default async function FileLogic({ files, updateState, options, handle, e
             result: `Error: ${type}`,
         }])
     };
-    errorContainer !== "" && await WriteOperation(handle ?? zip, `LRCLib-Get-${files[0]._path?.substring(0, files[0]._path?.indexOf("/"))}-Errors-${Date.now()}.txt`, errorContainer);
+    errorContainer !== "" && await WriteOperation(handle ?? zipFile, `LRCLib-Get-${files[0]._path?.substring(0, files[0]._path?.indexOf("/"))}-Errors-${Date.now()}.txt`, errorContainer);
     if (!handle) {
         const download = `LyricsDownload-${files[0]._path?.substring(0, files[0]._path?.indexOf("/"))}-${Date.now()}.zip`;
         const a = Object.assign(document.createElement("a"), {
-            href: URL.createObjectURL(await zip.generateAsync({ type: "blob" })),
+            href: URL.createObjectURL(await zipFile.close()),
             download,
             textContent: download,
             target: "_blank"
         });
         a.click();
         anchorUpdate && anchorUpdate(prev => { console.log(prev); return [...prev, a] });
+    }
+    function nextTimeout() {
+        return new Promise(res => {
+            setTimeout(res, Math.floor(Math.random() * (options.maxWait - options.minWait) + options.minWait))
+        })
     }
 }
