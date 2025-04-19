@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { CompletedInfo, DialogEnum, Options } from "./Scripts/Types";
 import FileLogic from "./Scripts/FileLogic";
 import Dialog from "./Dialog";
@@ -19,6 +19,17 @@ export default function App() {
   const [dialog, showDialog] = useState<DialogEnum>(DialogEnum.NONE);
   const [mainLinks, updateMainLinks] = useState<HTMLAnchorElement[]>([]);
   let isUpdatedFromLocalStorage = useRef<boolean>(false);
+  /**
+   * Check if the file has one of the allowed extensions by the user
+   * @param file the file path (string)
+   * @returns true if the lyrics of the file should be fetched, false otherwise.
+   */
+  function checkAllowedExtension(file: string) {
+    for (const extension of options.current.allowedExtensions) {
+      if (file.endsWith(extension)) return true;
+    }
+    return false;
+  }
   async function pickFiles(directory = false) {
     if (directory && options.current.useFS && window.showDirectoryPicker) { // Get write access to a directory using the File System API
       try {
@@ -34,7 +45,7 @@ export default function App() {
             if (entry.kind === "file") {
               const file = await entry.getFile();
               file._path = `${path}/${entry.name}`; // The _path property is used so that the relative path can be added also when using the File System API
-              file._path.endsWith(options.current.allowedExtensions) && arr.push(file);
+              checkAllowedExtension(file._path) && arr.push(file);
             } else await getFiles(await handle.getDirectoryHandle(entry.name), `${path}/${entry.name}`);
           }
         }
@@ -52,7 +63,7 @@ export default function App() {
     input.onchange = async () => {
       if (input.files) {
         for (let i = 0; i < input.files.length; i++) input.files[i]._path = input.files[i].webkitRelativePath; // The _path property is used so that the relative path can be added also when using the File System API
-        await FileLogic({ files: directory ? Array.from(input.files).filter(item => item._path.endsWith(options.current.allowedExtensions)) : input.files, updateState, options: options.current, anchorUpdate: updateMainLinks, progress });
+        await FileLogic({ files: directory ? Array.from(input.files).filter(item => checkAllowedExtension(item._path)) : input.files, updateState, options: options.current, anchorUpdate: updateMainLinks, progress });
       }
     };
     input.click();
@@ -77,6 +88,16 @@ export default function App() {
     checkOnlyLrcFileName: false
   });
   const progress = useRef<HTMLProgressElement>(null);
+  const autoHeightItems: (HTMLElement | null)[] = [];
+  useEffect(() => {
+    for (const item of autoHeightItems) {
+      if (!item) continue;
+      (item.closest(".card")?.getBoundingClientRect().width ?? Infinity) < (275 * window.devicePixelRatio) && item.classList.add("autoHeight");
+      window.addEventListener("resize", () => {
+        item.classList[(item.closest(".card")?.getBoundingClientRect().width ?? Infinity) < (275 * window.devicePixelRatio) ? "add" : "remove"]("autoHeight");
+      })
+    }
+  }, [])
   if (!isUpdatedFromLocalStorage.current) {
     isUpdatedFromLocalStorage.current = true;
     const prevOptions = JSON.parse(localStorage.getItem("LRCLibGet-Options") ?? "{}") as CompletedInfo;
@@ -137,25 +158,33 @@ export default function App() {
         </div>
         <div className="card" style={{ backgroundColor: "var(--tableheader)" }}>
           <h3>Folder-specific options:</h3>
-          <label className="flex hcenter margin marginInner">
+          <label className="flex hcenter margin marginInner autoWidth" ref={ref => { autoHeightItems.push(ref); return; }}>
             <span>Fetch only the lyrics of the files that end with (comma-separated list):</span><input type="text" defaultValue={options.current.allowedExtensions} onChange={(e) => updateRef("allowedExtensions", e.target.value)}></input>
           </label>
           <label className="flex hcenter margin marginInner">
-            <input type="checkbox" onChange={(e) => updateRef("checkLrc", e.target.checked)} defaultChecked={options.current.checkLrc}></input><span>Don't fetch lyrics if a .LRC file with the same name is available</span><select defaultValue={options.current.checkOnlyLrcFileName ? "everywhere" : "same"} onChange={(e) => updateRef("checkOnlyLrcFileName", e.target.value === "everywhere")}>
-              <option value={"same"}>in the same folder</option>
-              <option value={"everywhere"}>in any subfolder of the selected one</option>
-            </select>
+            <input type="checkbox" onChange={(e) => updateRef("checkLrc", e.target.checked)} defaultChecked={options.current.checkLrc}></input>
+            <span className="flex marginInner hcenter" ref={ref => { autoHeightItems.push(ref); return; }}>
+              <span>Don't fetch lyrics if a .LRC file with the same name is available</span>
+              <select defaultValue={options.current.checkOnlyLrcFileName ? "everywhere" : "same"} onChange={(e) => updateRef("checkOnlyLrcFileName", e.target.value === "everywhere")}>
+                <option value={"same"}>in the same folder</option>
+                <option value={"everywhere"}>in any subfolder of the selected one</option>
+              </select>
+            </span>
           </label>
         </div>
         <div className="card" style={{ backgroundColor: "var(--tableheader)" }}>
           <h3>Advanced:</h3>
           <label className="flex hcenter margin marginInner">
-            <input type="checkbox" defaultChecked={options.current.useFileName} onChange={(e) => updateRef("useFileName", e.target.checked)}></input><span>Use the file name</span> <select defaultValue={options.current.forceFileName ? "always" : "metadata"} onChange={(e) => {
-              updateRef("forceFileName", e.target.value === "always");
-            }}>
-              <option value={"metadata"}>if metadata can't be fetched</option>
-              <option value={"always"}>always</option>
-            </select>
+            <input type="checkbox" defaultChecked={options.current.useFileName} onChange={(e) => updateRef("useFileName", e.target.checked)}></input>
+            <span className="flex marginInner hcenter" ref={ref => { autoHeightItems.push(ref); return; }}>
+              <span>Use the file name</span>
+              <select defaultValue={options.current.forceFileName ? "always" : "metadata"} onChange={(e) => {
+                updateRef("forceFileName", e.target.value === "always");
+              }}>
+                <option value={"metadata"}>if metadata can't be fetched</option>
+                <option value={"always"}>always</option>
+              </select>
+            </span>
           </label>
           <label className="flex hcenter margin marginInner">
             <span>Allow this difference in seconds between the original track and the fetched lyrics:</span> <input type="number" defaultValue={options.current.secondDifference} min={0} onChange={(e) => updateRef("enforceSeconds", +e.target.value)}></input>
@@ -166,7 +195,7 @@ export default function App() {
           <label className="flex hcenter margin marginInner">
             <input type="checkbox" defaultChecked={options.current.useQ} onChange={(e) => updateRef("useQ", e.target.checked)}></input><span>Use the "q" parameter in the LRCLib API</span>
           </label>
-          <label className="flex hcenter margin marginInner">
+          <label>
             <span>Wait a random number between </span> <input type="number" defaultValue={options.current.minWait} min={0} onChange={(e) => updateRef("minWait", +e.target.value)}></input> <span>and</span> <input type="number" defaultValue={options.current.maxWait} min={0} onChange={(e) => updateRef("maxWait", +e.target.value)}></input> <span> milliseconds before fetching the next lyrics file</span>
           </label>
         </div>
@@ -176,31 +205,33 @@ export default function App() {
       <h2>Converted files:</h2>
       <p>A zip file with all the files will be downloaded at the end. You can click on a track name to download the zip file with only that track data.</p>
       <progress ref={progress} value={0} max={0}></progress><br></br><br></br>
-      <table>
-        <thead>
-          <tr>
-            <th>Track name:</th>
-            <th>Artist:</th>
-            <th>Album:</th>
-            <th>Duration:</th>
-            <th>Status:</th>
-          </tr>
-        </thead>
-        <tbody>
-          {state.map((item, i) => <tr style={{ backgroundColor: item.result === "Successful" ? "var(--green)" : "var(--red)" }} key={`ContentPosition-${i}`}>
-            <td>
-              <a style={{ textDecoration: item.download ? "underline" : "" }} onClick={(e) => {
-                if (!item.download || (e.target as HTMLAnchorElement).href) return;
-                item.download(e.target as HTMLAnchorElement);
-              }}>{item.track}</a>
-            </td>
-            <td>{item.artist}</td>
-            <td>{item.album}</td>
-            <td>{item.duration}</td>
-            <td>{item.result}</td>
-          </tr>)}
-        </tbody>
-      </table>
+      <div style={{ overflow: "auto", maxWidth: "100%" }}>
+        <table>
+          <thead>
+            <tr>
+              <th>Track name:</th>
+              <th>Artist:</th>
+              <th>Album:</th>
+              <th>Duration:</th>
+              <th>Status:</th>
+            </tr>
+          </thead>
+          <tbody>
+            {state.map((item, i) => <tr style={{ backgroundColor: item.result === "Successful" ? "var(--green)" : "var(--red)" }} key={`ContentPosition-${i}`}>
+              <td>
+                <a style={{ textDecoration: item.download ? "underline" : "" }} onClick={(e) => {
+                  if (!item.download || (e.target as HTMLAnchorElement).href) return;
+                  item.download(e.target as HTMLAnchorElement);
+                }}>{item.track}</a>
+              </td>
+              <td>{item.artist}</td>
+              <td>{item.album}</td>
+              <td>{item.duration}</td>
+              <td>{item.result}</td>
+            </tr>)}
+          </tbody>
+        </table>
+      </div>
     </div><br></br>
     <div className="card anchorBlock">
       <h2>Redownload zip files</h2>

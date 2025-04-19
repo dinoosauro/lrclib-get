@@ -24,6 +24,7 @@ interface Props {
     progress?: React.RefObject<HTMLProgressElement | null>
 }
 export default async function FileLogic({ files, updateState, options, handle, anchorUpdate, progress }: Props) {
+    if (files.length === 0) return;
     /**
      * The string that contains all the errors that'll be written in the output file.
      */
@@ -167,7 +168,7 @@ export default async function FileLogic({ files, updateState, options, handle, a
             target: "_blank"
         });
         a.click();
-        anchorUpdate && anchorUpdate(prev => { console.log(prev); return [...prev, a] });
+        anchorUpdate && anchorUpdate(prev => [...prev, a]);
     }
     function nextTimeout() {
         return new Promise(res => {

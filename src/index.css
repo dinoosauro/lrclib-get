@@ -216,3 +216,22 @@ a {
   display: block;
   margin-bottom: 10px;
 }
+
+.autoHeight {
+  display: block;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+.autoHeight:not(.autoWidth) {
+  max-width: calc(100% - 74px);
+  width: calc(100% - 74px);
+}
+
+.autoHeight>input,
+.autoHeight>select {
+  margin-top: 5px;
+  display: block;
+  width: 100%;
+  width: -webkit-fill-available;
+}

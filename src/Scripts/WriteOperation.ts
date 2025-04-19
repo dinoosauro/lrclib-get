@@ -8,11 +8,12 @@ import { TextReader, ZipWriter } from "@zip.js/zip.js";
  */
 export default async function WriteOperation(handle: ZipWriter<Blob> | FileSystemDirectoryHandle, path: string, content: any) {
     if (!content) return;
-    if (handle instanceof FileSystemDirectoryHandle) {
+    // @ts-ignore
+    if (typeof handle?.getDirectoryHandle === "function") { // This means that it's a FileSystemDirectoryHandle. I unfortunately can't use instanceof since Chromium on Android throws a ReferenceError
         const split = path.split("/");
         const name = split.pop() ?? `${Math.random()}`;
         for (const subpath of split) handle = await (handle as FileSystemDirectoryHandle).getDirectoryHandle(subpath, { create: true });
-        const file = await handle.getFileHandle(name, { create: true });
+        const file = await (handle as FileSystemDirectoryHandle).getFileHandle(name, { create: true });
         const writable = await file.createWritable();
         await writable.write(content);
         await writable.close();
