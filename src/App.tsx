@@ -4,6 +4,7 @@ import FileLogic from "./Scripts/FileLogic";
 import Dialog from "./Dialog";
 import Licenses from "./Scripts/Licenses";
 import VanillaHTMLConverter from "./VanillaHTMLConverter";
+import GetDroppedFiles from "./Scripts/GetDroppedFiles";
 declare global {
   interface Window {
     version: string,
@@ -25,7 +26,7 @@ export default function App() {
    * @returns true if the lyrics of the file should be fetched, false otherwise.
    */
   function checkAllowedExtension(file: string) {
-    for (const extension of options.current.allowedExtensions) {
+    for (const extension of options.current.allowedExtensions.split(",")) {
       if (file.endsWith(extension)) return true;
     }
     return false;
@@ -96,7 +97,34 @@ export default function App() {
       window.addEventListener("resize", () => {
         item.classList[(item.closest(".card")?.getBoundingClientRect().width ?? Infinity) < (275 * window.devicePixelRatio) ? "add" : "remove"]("autoHeight");
       })
-    }
+    };
+    document.body.addEventListener("drop", async (e) => { // Handle dropped files
+      e.preventDefault();
+      if (e.dataTransfer?.items) {
+        const outputArr = await GetDroppedFiles(Array.from(e.dataTransfer.items).map(item => item.webkitGetAsEntry()).filter(item => !!item)); // Get the files to convert
+        // If the user has enabled custom allowed extensions, an alert will be shown saying that only those items will be considered. This alert will be shown only one time.
+        const arr = (localStorage.getItem("LRCLibGet-AlertShown") ?? ",").split(",");
+        if (options.current.allowedExtensions !== "" && arr.indexOf("AllowedExtensionsWhenDropping") === -1) {
+          alert("Only files with the allowed extensions will be fetched. You can change, or disable, allowed extensions from the settings. This alert won't be shown again.");
+          arr.push("AllowedExtensionsWhenDropping");
+          localStorage.setItem("LRCLibGet-AlertShown", arr.join(","));
+        }
+        document.body.classList.remove("drop");
+        await FileLogic({ files: outputArr.filter(item => checkAllowedExtension(item._path)), updateState, options: options.current, anchorUpdate: updateMainLinks, progress });
+      }
+    });
+    /**
+     * The last date the "drop" event was dispatched. This is used so that, if there's no drag element in 200ms, the drag interface will be removed.
+     */
+    let dropDate = Date.now();
+    document.body.addEventListener("dragover", (e) => {
+      e.preventDefault();
+      document.body.classList.add("drop");
+      dropDate = Date.now();
+    });
+    setInterval(() => {
+      if (Date.now() > (dropDate + 200)) document.body.classList.remove("drop");
+    }, 200);
   }, [])
   if (!isUpdatedFromLocalStorage.current) {
     isUpdatedFromLocalStorage.current = true;

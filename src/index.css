@@ -235,3 +235,23 @@ a {
   width: 100%;
   width: -webkit-fill-available;
 }
+
+.drop::before {
+  content: "Drop the files here!";
+  font-size: 3rem;
+  padding: 15px;
+  font-weight: bold;
+  width: calc(100vw - 30px - 10px);
+  height: calc(100vh - 30px - 10px);
+  position: fixed;
+  top: 0px;
+  left: 0px;
+  z-index: 3;
+  border: 5px dotted var(--accent);
+  align-items: center;
+  justify-content: center;
+  display: flex;
+  backdrop-filter: blur(8px) brightness(40%);
+  -webkit-backdrop-filter: blur(8px) brightness(40%);
+
+}
