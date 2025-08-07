@@ -1,4 +1,4 @@
-import { jsmediatagsError, TagType } from "jsmediatags/types";
+import { IAudioMetadata } from "music-metadata";
 
 export interface CompletedInfo {
     track: string,
@@ -13,8 +13,8 @@ export type DurationResult =
     | { success: true, duration: number }
     | { success: false, error: string | Event };
 export type TagResult =
-    | { success: true; content: TagType }
-    | { success: false; error: jsmediatagsError | string };
+    | { success: true; content: IAudioMetadata }
+    | { success: false; error: Error | string };
 
 export interface Options {
     sendAlbum: boolean,

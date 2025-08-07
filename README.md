@@ -33,6 +33,5 @@ should be sent. We'll also send this website's name and this website's version.
 By using this tool, you also agree to their Terms of Service and Privacy Policy.
 
 This website also connects to Google Fonts to display the fonts used in this
-webpage, and to JSDelivr to fetch the "jsmediatags" library. No data is shared
-with them. Other third-party libraries are used, and you can find their license
+webpage. No data is shared with Google. Other third-party libraries are used, and you can find their license
 in the "Open source licenses" section of the website.

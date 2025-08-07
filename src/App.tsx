@@ -42,6 +42,7 @@ export default function App() {
          * @param path the relative path of this folder
          */
         async function getFiles(handle: FileSystemDirectoryHandle, path = directory.name) { // path is automatically set to "directory.name" to emulate the webkitRelativePath, that adds the main folder name at the start. It's important to keep it since the HandleRelativePath function automatically deletes the first folder from the path string.
+          // @ts-ignore
           for await (const entry of handle.values()) {
             if (entry.kind === "file") {
               const file = await entry.getFile();
@@ -276,13 +277,7 @@ export default function App() {
         <h2>Open source licenses</h2>
         <p>Below are reported the licenses of the libraries used to make LRCLib-Get:</p>
         {[{
-          name: "jsmediatags", author: `2009 Opera Software ASA
-
-Copyright (c) 2015 António Afonso
-
-Copyright (c) 2008 Jacob Seidelin, http://blog.nihilogic.dk/
-
-Copyright (c) 2010 Joshua Kifer`, type: "bsd", link: "https://github.com/aadsm/jsmediatags"
+          name: "music-metadata", author: "2025 Borewit", type: "mit", link: "https://github.com/Borewit/music-metadata"
         }, {
           name: `zip.js`, type: "bsd", link: `https://github.com/gildas-lormeau/zip.js/`, author: `2023, Gildas Lormeau`
         }, {
@@ -303,7 +298,7 @@ Copyright (c) 2010 Joshua Kifer`, type: "bsd", link: "https://github.com/aadsm/j
       <Dialog close={() => showDialog(DialogEnum.NONE)}>
         <h3>Privacy Notice:</h3>
         <p>This website connects to the <a href="https://lrclib.net" target="_blank">LRCLib API</a> to fetch lyrics. We share with them only the information about the audio track, and you're able to choose which fields should be sent. We'll also send this website's name and this website's version. By using this tool, you also agree to their Terms of Service and Privacy Policy.</p><br></br>
-        <p>This website also connects to Google Fonts to display the fonts used in this webpage, and to JSDelivr to fetch the "jsmediatags" library. No data is shared with them.</p>
+        <p>This website also connects to Google Fonts to display the fonts used in this webpage. No data is shared with Google.</p>
       </Dialog>
     </> : <></>}
   </>

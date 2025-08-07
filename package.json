@@ -10,8 +10,8 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "@types/jsmediatags": "^3.9.6",
     "@zip.js/zip.js": "^2.6.40",
+    "music-metadata": "^11.7.3",
     "react": "^19.0.0",
     "react-dom": "^19.0.0"
   },

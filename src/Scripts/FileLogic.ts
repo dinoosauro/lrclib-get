@@ -2,6 +2,7 @@ import { CompletedInfo, DurationResult, Options, TagResult } from "./Types"
 import HandleRelativePath from "./HandleRelativePath";
 import WriteOperation from "./WriteOperation";
 import { BlobWriter, TextReader, ZipWriter } from "@zip.js/zip.js";
+import * as metadata from "music-metadata";
 
 interface Props {
     /**
@@ -48,15 +49,10 @@ export default async function FileLogic({ files, updateState, options, handle, a
         }
         const result = await new Promise<TagResult>((res) => {
             if (options.forceFileName) res({ success: false, error: "Not required." });
-            // @ts-ignore
-            (jsmediatags as typeof jsmediatags).read(item, {
-                onSuccess(data) {
-                    res({ success: true, content: data })
-                },
-                onError(error) {
-                    res({ success: false, error });
-                },
-            })
+
+            metadata.parseBlob(item).then((data) => {
+                res({success: true, content: data})
+            }).catch((ex) => res({success: false, error: ex}));
         });
         /**
          * The URL used to fetch lyrics
@@ -76,7 +72,7 @@ export default async function FileLogic({ files, updateState, options, handle, a
          */
         let infoConversion: CompletedInfo = { track: item.name.substring(0, item.name.lastIndexOf(".")), artist: "", album: "", duration: seconds.success ? seconds.duration.toString() : "", result: "" };
         if (result.success) { // Metadata fetched
-            const [album, artist, track] = [result.content.tags.album, result.content.tags.TPE2?.data ?? result.content.tags.artist, result.content.tags.title ?? item.name.substring(0, item.name.lastIndexOf("."))];
+            const [album, artist, track] = [result.content.common.album, result.content.common.artist ?? result.content.common.artists?.join(", "), result.content.common.title ?? item.name.substring(0, item.name.lastIndexOf("."))];
             if ((album || !options.sendAlbum) && track && (artist || !options.sendArtist) && (seconds.success || !options.sendDuration)) {
                 reqUrl = `https://lrclib.net/api/search?${options.useQ ? "q" : "track_name"}=${encodeURIComponent(track)}${options.sendArtist && artist ? `${options.useQ ? " " : "&artist_name="}${encodeURIComponent(artist)}` : ""}${options.sendAlbum && album ? `${options.useQ ? " " : "&album_name="}${encodeURIComponent(album)}` : ""}`;
             }
